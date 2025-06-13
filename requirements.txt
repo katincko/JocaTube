@@ -1,0 +1,5 @@
+customtkinter
+pytubefix
+Pillow
+imageio-ffmpeg
+tk
