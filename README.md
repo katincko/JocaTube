@@ -29,10 +29,38 @@ A sleek and functional YouTube video downloader built with **Python**, **CustomT
 - [Pillow](https://github.com/python-pillow/Pillow)
 
 ---
-
 ## 📦 Installation
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/katincko/JocaTube.git
    cd JocaTube
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the app**
+   ```bash
+   python main.py
+   ```
+
+> ⚠️ Make sure you’re using Python 3.8+  
+> 💡 You must have internet access to fetch videos and thumbnails from YouTube  
+
+---
+
+## 🧠 Future Improvements
+
+- [✅] Download progress bar  
+- [✅] Audio-only download option  
+- [❌] Playlist support  
+- [✅] Dark mode toggle  
+
+---
+
+## 🐾 Author
+
+Developed with 💻 + 🐍 by [@katincko](https://github.com/katincko)
