@@ -1,17 +1,18 @@
 import customtkinter
 from tkinter import filedialog
-from tkinter import *
-from tkinter import ttk
-from pytubefix import YouTube
+from pytubefix import YouTube , Playlist
 from pytubefix.cli import on_progress
 import urllib.request
-from PIL import Image, ImageTk
-import os
+from PIL import Image , ImageDraw , ImageOps
+import os , threading , subprocess , re
 from io import BytesIO
-import threading
-import subprocess
-import re
 import imageio_ffmpeg as ffmpeg
+
+
+#TODO:
+#fazer download de playlists com o bagaço de objetos. obj_video pra cada um na playlist e pa.
+#corrigir bugs: se nao selecionar diretorio nao faz nada
+#dizer oque ocorreu no erro.
 
 # Tema usado no app
 customtkinter.set_appearance_mode("dark")
@@ -38,6 +39,8 @@ root.after(201, lambda: root.iconbitmap(icon_path))
 # Frame da janela
 frame = customtkinter.CTkFrame(master=root)
 frame.pack(pady=20, padx=60, fill="both", expand=True)
+
+
 
 
 def mudar_tema():
@@ -68,249 +71,200 @@ def mudar_tema():
             y=65
         )
 
-def sanitize_filename(filename):
-    return re.sub(r'[\\/*?:"<>|]', "", filename)
-# funções de download abaixo.
-def buscar():
-
-    # função de download
-    def downloadbttn():
-
-        def start_download():
-
-            # baixar video
-            try:
-
-                if my_option.get() != "MP3":
-                    # especificando o video and audio streams
-                    video_stream = yt.streams.filter(res=my_option.get()).first()
-                    audio_stream = yt.streams.filter(only_audio=True).first()
-
-                    # Choose o diretorio q o video will be downloaded
-                    diretorio_download = filedialog.askdirectory()
-
-                    #Download the streams to temporary files
-                    video_file = os.path.join(diretorio_download, "video_temp.mp4")
-                    audio_file = os.path.join(diretorio_download, "audio_temp.mp3")
-                    video_stream.download(output_path=diretorio_download, filename="video_temp.mp4")
-                    audio_stream.download(output_path=diretorio_download, filename="audio_temp.mp3")
-
-                    label3.configure(text="Renderizando Video...", text_color="yellow")
-                    label3.place(x=300, y=270)
-
-                    # Combine the video and audio streams using FFMPEG
-                    
-                    output_file = os.path.join(diretorio_download, f"{sanitize_filename(yt.title)}.mp4")
-                    command = [
-                        ffmpeg.get_ffmpeg_exe(),  # Obtém o caminho do ffmpeg embutido
-                        '-i', video_file,  # Arquivo de vídeo
-                        '-i', audio_file,  # Arquivo de áudio
-                        '-c:v', 'copy',  # Copiar o vídeo sem re-encode
-                        '-c:a', 'aac',  # Usar o codec de áudio AAC
-                        '-strict', 'experimental',  # Para permitir o uso de codecs experimentais se necessário
-                        '-loglevel', 'quiet', # Suprime a saída do terminal
-                        output_file  # Arquivo de saída
-                    ]
-                    subprocess.run(command, check=True)
-                    # Delete the temporary files
-                    os.remove(video_file)
-                    os.remove(audio_file)
-
-                    
+def round_image(image, radius):
+    # Cria uma máscara circular para a imagem
+    mask = Image.new("L", image.size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle(
+        (0, 0, image.size[0], image.size[1]), radius=radius, fill=255
+    )
 
 
-                elif my_option.get == ("MP3"):
-                    mp3 = yt.streams.filter(only_audio= True).first()
-                    mp3.download(output_path=filedialog.askdirectory())
-                   
-                label3.configure(text="DOWNLOAD CONCLUÍDO!", text_color="green")
-                label3.place(x=300, y=270)
+    # Aplica a máscara à imagem original
+    rounded_image = image.copy()
+    rounded_image.putalpha(mask)
+    return rounded_image
 
-            except:
-                label3.configure(
-                    text="Ocorreu um erro, tente novamente", text_color="red")
+# função de download
 
+def downloadbttn():
+    def start_download():
+        #TODO: CASO O NOME DO ARQUIVO SEJA IGUAL A OUTRO, ELE ADCIONA (1) NO FINAL DO NOME DO ARQUIVO E ASSIM POR DIANTE.
+        # baixar video
+        try:
+
+            #for video in playlist.videos:
+                #start_download()
+
+            if my_option.get() != "MP3":
+                # especificando o video and audio streams
+                video_stream = yt.streams.filter(res=my_option.get()).first()
+                audio_stream = yt.streams.filter(only_audio=True).first()
+
+
+                #Download the streams to temporary files
+                video_file = os.path.join(diretorio_download, "video_temp.mp4")
+                audio_file = os.path.join(diretorio_download, "audio_temp.mp3")
+                video_stream.download(output_path=diretorio_download, filename="video_temp.mp4")
+                audio_stream.download(output_path=diretorio_download, filename="audio_temp.mp3")
+
+                label3.configure(text="Renderizando Video...", text_color="yellow")
+                label3.place(x=333, y=110)
+
+                # Combine the video and audio streams using FFMPEG
+                
+                output_file = os.path.join(diretorio_download, f"{sanitize_filename(yt.title)}.mp4")
+                command = [
+                    ffmpeg.get_ffmpeg_exe(),  # Obtém o caminho do ffmpeg embutido
+                    '-i', video_file,  # Arquivo de vídeo
+                    '-i', audio_file,  # Arquivo de áudio
+                    '-c:v', 'copy',  # Copiar o vídeo sem re-encode
+                    '-c:a', 'aac',  # Usar o codec de áudio AAC
+                    '-strict', 'experimental',  # Para permitir o uso de codecs experimentais se necessário
+                    '-loglevel', 'quiet', # Suprime a saída do terminal
+                    output_file  # Arquivo de saída
+                ]
+                subprocess.run(command, check=True)
+                # Delete the temporary files
+                os.remove(video_file)
+                os.remove(audio_file)
+
+                
+            
+            elif my_option.get() == "MP3":
+                mp3_stream = yt.streams.filter(only_audio=True).first()
+                mp3_stream.download(output_path=diretorio_download, filename=f"{sanitize_filename(yt.title)}.mp3")
+
+
+
+            label3.configure(text="DOWNLOAD CONCLUÍDO!", text_color="green")
+            label3.place(x=333, y=110)
+
+        except:
+            label3.configure(
+                text="Ocorreu um erro, tente novamente", text_color="red")
+
+
+
+    # Choose o diretorio q o video will be downloaded
+    diretorio_download = filedialog.askdirectory()
+    if diretorio_download == "":
+        label3.configure(text="Diretório inválido.", text_color="red")
+
+    else:
         # thread
         thread = threading.Thread(target=start_download)
         thread.start()
 
-    # Função de progresso de download
+
+
+def sanitize_filename(filename):
+    return re.sub(r'[\\/*?:"<>|]', "", filename)
+# funções de download abaixo.
+
+# Widgets globais
+label_titulo = None
+label_thumbnail = None
+my_option = None
+barra_progresso = None
+
+def buscar():
+    global button_download, my_option, yt, label_titulo, label_thumbnail , barra_progresso
 
     def on_progress(stream, chunk, bytes_remaining):
-
-        # Pegar a porcentagem de download
+        # Atualiza a barra de progresso e porcentagem
         totalsize = stream.filesize
         bytes_downloaded = totalsize - bytes_remaining
         percentage_completion = bytes_downloaded / totalsize * 100
-
-        # atualiza o label que diz o progresso
         per = str(int(percentage_completion)) + "%"
         pPercentage.configure(text=per)
-
+        barra_progresso.set(float(percentage_completion) / 100)
+        pPercentage.configure(text=per)
         if pPercentage.cget("text") == "100%":
             pPercentage.place(x=261)
 
-        # atualiza a barra de progresso
-        barra_progresso.set(float(percentage_completion) / 100)
-
-    
-    # SE o usuário falhou, e agora acertou, ele vai tirar o texto de erro.
-    if label3.cget("text") == "URL/LINK INVÁLIDO.":
-        label3.configure(text="")
-        label3.place(
-            x=300,
-            y=270
-        )
-
-    # ESSE try serve pra verificar se a url é válida, se não for, ele vai dar um erro.
     try:
-
-        # declarar a url como variável
+        # Verifica se a URL é válida
         yt = YouTube(entry.get(), on_progress_callback=on_progress)
 
-        if yt == False:
-            label3.configure(
-                text="Ocorreu um erro, tente novamente", text_color="red")
-            label3.place(
-                x=300,
-                y=270
-            )
-
-        # BARRA DE PROGRESSO!!!
-        barra_progresso = customtkinter.CTkProgressBar(
-            master=frame, width=340, orientation="horizontal")
-        barra_progresso.pack(pady=12, padx=10)
-
-        barra_progresso.place(
-            x=300,
-            y=250
-        )
-        barra_progresso.set(0)
-
-        # Porcentagem de download
-        pPercentage = customtkinter.CTkLabel(
-            master=frame, text="0%", font=("roboto bold", 15))
-        pPercentage.pack(pady=12, padx=10)
-        pPercentage.place(
-            x=268,
-            y=240
-        )
-
-
-        # TITULO DO VIDEO.
-        # Define a maximum length for the video title
-        MAX_TITLE_LENGTH = 35
+        # Atualiza o título do vídeo
         video_title = yt.title
+        MAX_TITLE_LENGTH = 35
         if len(video_title) > MAX_TITLE_LENGTH:
             video_title = video_title[:MAX_TITLE_LENGTH] + "..."
 
-        label = customtkinter.CTkLabel(
-            master=frame, text=video_title, font=("roboto bold", 16)
-)
+        if label_titulo is None:
+            label_titulo = customtkinter.CTkLabel(
+                master=frame, text=video_title, font=("roboto bold", 16)
+            )
+            label_titulo.place(x=275, y=200)
+        else:
+            label_titulo.configure(text=video_title)
 
-        label.pack(pady=12, padx=10)
-
-        label.place(
-
-            x=275,
-            y=200
-        )
-
-        # THUMBNAIL DO VIDEO.
+        # Atualiza a thumbnail do vídeo
         url_image = yt.thumbnail_url
-
         response = urllib.request.urlopen(url_image)
         image_data = response.read()
 
-        img = customtkinter.CTkImage(light_image=Image.open(BytesIO(
-            image_data)), dark_image=Image.open(BytesIO(image_data)), size=(220, 180))
-        label = customtkinter.CTkLabel(master=frame, text="", image=img)
-        label.pack(pady=12, padx=10)
-        label.place(
-            x=40,
-            y=130
+        #Arredonda imagem
+        thumbnail = round_image(Image.open(BytesIO(image_data)), radius=20).convert("RGBA")
+        rounded_thumbnail = round_image(thumbnail, radius=50)
+
+        img = customtkinter.CTkImage(
+            light_image=rounded_thumbnail,
+            dark_image=rounded_thumbnail,
+            size=(220, 180),
         )
 
-        # Busca stream da resolução
-        
-        mp3 = yt.streams.filter(only_audio=True).first()
-        res1080 = yt.streams.filter(res="1080p").first()
-        res720 = yt.streams.filter(res="720p").first()
-        res480 = yt.streams.filter(res="480p").first()
-        res360 = yt.streams.filter(res="360p").first()
-        res240 = yt.streams.filter(res="240p").first()
-        res144 = yt.streams.filter(res="144p").first()
 
-        # if e else para mudar a resolução e Se nao achar a res é falsa e nao existe
-        if mp3 != None:
-            mp3 = "MP3"
+
+        if label_thumbnail is None:
+            label_thumbnail = customtkinter.CTkLabel(master=frame, text="", image=img)
+            label_thumbnail.place(x=40, y=130)
         else:
-            mp3 = "MP3 NAO DISPONÍVEL."
+            label_thumbnail.configure(image=img)
 
-        if res1080 != None:
-            res1080 = "1080p"
+        #Atualiza label3
+        label3.configure(text="")
+        label3.place(x=333, y=110)
+        pPercentage.configure(text="0%")
+
+
+        # Atualiza as opções de resolução
+        resolucoes = {
+            "MP3": yt.streams.filter(only_audio=True).first(),
+            "1080p": yt.streams.filter(res="1080p").first(),
+            "720p": yt.streams.filter(res="720p").first(),
+            "480p": yt.streams.filter(res="480p").first(),
+            "360p": yt.streams.filter(res="360p").first(),
+            "240p": yt.streams.filter(res="240p").first(),
+            "144p": yt.streams.filter(res="144p").first(),
+        }
+
+        opcoes = [
+            resolucao if stream is not None else f"{resolucao} não disponível."
+            for resolucao, stream in resolucoes.items()
+        ]
+
+        if my_option is None:
+            my_option = customtkinter.CTkOptionMenu(master=frame, values=opcoes)
+            my_option.place(x=662, y=198)
         else:
-            res1080 = "1080p não disponível."
+            my_option.configure(values=opcoes)
+            my_option.set(opcoes[0])  # Define a primeira opção como padrão
 
-        if res720 != None:
-            res720 = "720p"
-        else:
-            res720 = "720p não disponível."
+        # Faz o botão de download aparecer
+        button_download.place(x=662, y=238)
 
-        if res480 != None:
-            res480 = "480p"
-        else:
-            res480 = "480p não disponível."
+        # Adicione a barra de progresso ao layout
+        barra_progresso = customtkinter.CTkProgressBar(master=frame, width=350)
+        barra_progresso.place(x=300, y=240)
+        barra_progresso.set(0)  # Inicializa a barra de progresso em 0
 
-        if res360 != None:
-            res360 = "360p"
-        else:
-            res360 = "360p não disponível."
-
-        if res240 != None:
-            res240 = "240p"
-        else:
-            res240 = "240p não disponível."
-
-        if res144 != None:
-            res144 = "144p"
-        else:
-            res144 = "144p não disponível."
-
-        # Opções na caixinha
-        opções = [mp3, res1080, res720, res480, res360, res240, res144]
-        my_option = customtkinter.CTkOptionMenu(master=frame, values=opções)
-        my_option.pack(pady=12, padx=10)
-        my_option.place(
-            x=662,
-            y=198
-        )
-
-        # Imagem do botão de download
-        imgdownload = "https://i.ibb.co/bsq5qKj/imagem-2024-11-02-230637827.png"
-
-        response_download = urllib.request.urlopen(imgdownload)
-        image_data_download = response_download.read()
-
-        img2 = customtkinter.CTkImage(light_image=Image.open(BytesIO(
-            image_data_download)), dark_image=Image.open(BytesIO(image_data_download)), size=(25, 25))
-
-        # botão pra chamar a função de download
-        button = customtkinter.CTkButton(
-            master=frame, text="Download!", command=downloadbttn, image=img2)
-        button.pack(pady=12, padx=10)
-        button.place(
-            x=662,
-            y=238
-        )
-    except:
-        label3.configure(
-            text="URL/LINK INVÁLIDO.", text_color="red")
-        label3.place(
-            x=333,
-            y=110
-        )
-
+    except Exception as e:
+        label3.configure(text="URL/LINK INVÁLIDO.", text_color="red")
+        label3.place(x=333, y=110)
+        print(f"Erro: {e}")
 
 # Label, downloader de videos
 label = customtkinter.CTkLabel(
@@ -337,6 +291,34 @@ button.place(
     x=662,
     y=65
 )
+
+
+
+# Porcentagem de download
+pPercentage = customtkinter.CTkLabel(
+    master=frame, text="", font=("roboto bold", 15))
+pPercentage.pack(pady=12, padx=10)
+pPercentage.place(
+    x=268,
+    y=230
+)
+
+
+# Imagem do botão de download
+imgdownload = "https://i.ibb.co/bsq5qKj/imagem-2024-11-02-230637827.png"
+
+response_download = urllib.request.urlopen(imgdownload)
+image_data_download = response_download.read()
+
+img2 = customtkinter.CTkImage(light_image=Image.open(BytesIO(
+    image_data_download)), dark_image=Image.open(BytesIO(image_data_download)), size=(25, 25))
+
+
+# botão pra chamar a função de download
+button_download = customtkinter.CTkButton(
+    master=frame, text="Download!", command=downloadbttn, image=img2)
+button_download.place_forget()
+
 
 # LUA
 img_theme2 = "https://i.ibb.co/WGvwND5/imagem-2024-11-02-232939527.png"
