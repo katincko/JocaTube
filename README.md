@@ -44,7 +44,7 @@ A sleek and functional YouTube video downloader built with **Python**, **CustomT
 
 3. **Run the app**
    ```bash
-   python main.py
+   python jocatube.py
    ```
 
 > ⚠️ Make sure you’re using Python 3.8+  
