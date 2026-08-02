@@ -1,5 +1,4 @@
-customtkinter
-pytubefix
-Pillow
-imageio-ffmpeg
-tk
+customtkinter==5.2.2
+pytubefix==8.12.1
+Pillow==11.1.0
+imageio-ffmpeg==0.6.0

@@ -6,9 +6,11 @@ A sleek and functional YouTube video downloader built with **Python**, **CustomT
 
 ## 🚀 Features
 
-- ✅ Paste a YouTube video URL
+- ✅ Paste a YouTube video **or playlist** URL
 - 🖼️ Automatically fetch and display video thumbnail
 - 🎯 Choose from available video resolutions
+- 🎵 Download audio as **real WAV** (lossless, ideal for FL Studio) or **real MP3** (selectable bitrate, with cover art)
+- 📃 Download entire playlists with per-item progress
 - 💾 Download videos locally with one click
 - 🐍 Built with Python and a fully custom UI using CustomTkinter
 
@@ -55,8 +57,8 @@ A sleek and functional YouTube video downloader built with **Python**, **CustomT
 ## 🧠 Future Improvements
 
 - [✅] Download progress bar  
-- [✅] Audio-only download option  
-- [❌] Playlist support  
+- [✅] Audio-only download option (real WAV / MP3)  
+- [✅] Playlist support  
 - [✅] Dark mode toggle  
 
 ---
